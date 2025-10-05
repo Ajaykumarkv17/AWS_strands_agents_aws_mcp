@@ -1,3 +1,5 @@
 myawsenv
 .vscode
 uv.lock
+.env
+__pycache__

@@ -84,8 +84,7 @@ def install_dependencies():
     try:
         print("Installing dependencies...")
         result = subprocess.run([
-            sys.executable, "-m", "pip", "install", 
-            "strands-agents", "strands-agents-tools", "boto3"
+            sys.executable, "-m", "pip", "install", "-r", "requirements.txt"
         ], capture_output=True, text=True)
         
         if result.returncode == 0:

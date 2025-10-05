@@ -8,4 +8,9 @@ dependencies = [
     "boto3>=1.40.35",
     "strands-agents>=1.9.1",
     "strands-agents-tools>=0.2.8",
+    "mem0ai>=0.1.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "streamlit>=1.28.0",
+    "streamlit-chat>=0.1.1",
 ]
