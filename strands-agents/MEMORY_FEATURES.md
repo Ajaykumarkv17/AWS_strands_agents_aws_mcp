@@ -76,10 +76,7 @@ streamlit run streamlit_app.py --server.port 8501
 docker-compose up --build
 ```
 
-### AWS Amplify Deployment
-- Configured with `amplify.yml`
-- Supports Python/Streamlit applications
-- Automatic builds and deployments
+
 
 ## 💡 Usage Examples
 

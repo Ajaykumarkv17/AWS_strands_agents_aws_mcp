@@ -7,7 +7,6 @@ A production-ready AI agent with persistent memory using Amazon Nova and Bedrock
 - 🧠 **Persistent Memory**: Remembers user preferences across sessions
 - ☁️ **AWS Native**: Built with Amazon Nova Premier, Nova Micro, and Titan Embeddings
 - 🔒 **User Isolation**: Per-user memory with unique IDs
-- 🚀 **Production Ready**: Optimized for AWS Amplify deployment
 
 ## Architecture
 
