@@ -9,3 +9,4 @@ boto3
 mem0ai
 strands-agents
 qdrant-client
+strands-agents-tools
