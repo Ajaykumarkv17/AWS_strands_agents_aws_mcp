@@ -39,7 +39,20 @@ else:
 st.markdown("""
 <style>
     .main {background-color: #0e1117;}
-    .stChatMessage {border-radius: 10px; padding: 1rem;}
+    .stChatMessage {
+        border-radius: 15px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    [data-testid="stChatMessageContent"] {
+        padding: 0.5rem;
+    }
+    [data-testid="stChatMessageContent"] p {
+        font-size: 1rem;
+        line-height: 1.7;
+        margin-bottom: 0.5rem;
+    }
     .memory-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -75,15 +88,6 @@ st.markdown("""
         text-align: center;
         color: white;
     }
-    .spinner-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 1rem;
-        background: rgba(102, 126, 234, 0.1);
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,30 +116,23 @@ def call_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None):
         st.error(f"Error: {str(e)}")
         return {"success": False}
 
-def stream_response(prompt: str, user_id: str):
-    """Stream API response word by word"""
+def get_response(prompt: str, user_id: str):
+    """Get API response with proper error handling"""
     try:
-        with st.spinner("🤔 Thinking..."):
-            response = requests.post(
-                f"{API_BASE_URL}/chat/stream",
-                json={"messages": [{"role": "user", "content": prompt}], "user_id": user_id},
-                stream=True,
-                timeout=30
-            )
-        
-        placeholder = st.empty()
-        full_response = ""
-        
-        for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
-            if chunk:
-                full_response += chunk
-                placeholder.markdown(full_response + "▌")
-                time.sleep(0.02)
-        
-        placeholder.markdown(full_response)
-        return full_response
+        response = requests.post(
+            f"{API_BASE_URL}/chat",
+            json={"messages": [{"role": "user", "content": prompt}], "user_id": user_id},
+            timeout=60
+        )
+        response.raise_for_status()
+        result = response.json()
+        return result.get("message", "No response")
+    except requests.exceptions.Timeout:
+        return "⚠️ Request timed out. The agent is taking longer than expected. Please try again."
+    except requests.exceptions.RequestException as e:
+        return f"⚠️ Connection error: {str(e)}"
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"⚠️ Error: {str(e)}"
 
 def login_page():
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -270,16 +267,18 @@ def main_app():
     
     # Chat
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+        with st.chat_message(msg["role"], avatar="👤" if msg["role"] == "user" else "🤖"):
+            st.markdown(msg["content"])
     
     if prompt := st.chat_input("💬 Ask me anything... I'll remember our conversation!"):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(prompt)
         
-        with st.chat_message("assistant"):
-            response = stream_response(prompt, st.session_state.user_id)
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner("🤔 Thinking..."):
+                response = get_response(prompt, st.session_state.user_id)
+            st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
 
 def main():
