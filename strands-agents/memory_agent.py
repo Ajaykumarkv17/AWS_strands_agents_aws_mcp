@@ -12,6 +12,7 @@ from strands_tools import calculator, current_time
 import boto3
 import json
 from memory_config import get_memory
+from mcp_diagram_client import get_diagram_mcp_client
 
 # Configure logging
 logging.basicConfig(
@@ -189,11 +190,26 @@ def create_memory_agent(user_id: str = "default") -> Agent:
         list_s3_buckets
     ]
     
+    # Add MCP diagram client
+    try:
+        mcp_client = get_diagram_mcp_client()
+        if mcp_client:
+            tools.append(mcp_client)
+            logger.info("Added AWS Diagram MCP client")
+    except Exception as e:
+        logger.warning(f"Could not load MCP client: {e}")
+    
     system_prompt = f"""
-You are a helpful AI assistant with memory capabilities.
+You are a helpful AI assistant with memory and diagram generation capabilities.
 
 When users share personal info (name, preferences, goals), save it using save_memory.
 When users ask about past conversations, use search_memory.
+When users ask to create or modify diagrams, use diagram tools and search memory for previous diagram context.
+
+For diagrams:
+1. Use MCP tools to create AWS architecture diagrams
+2. Search memory for previous diagrams to iterate
+3. Save diagram context to memory
 
 User: {user_id}
 

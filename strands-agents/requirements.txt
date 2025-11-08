@@ -10,3 +10,6 @@ mem0ai
 strands-agents
 qdrant-client
 strands-agents-tools
+mcp
+diagrams
+graphviz

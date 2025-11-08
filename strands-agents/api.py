@@ -6,9 +6,14 @@ Exposes memory-aware agent functionality as REST API endpoints
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import logging
+import os
+import re
+from pathlib import Path
 from contextlib import asynccontextmanager
 from memory_agent import create_memory_agent
 from memory_config import get_memory
@@ -30,6 +35,7 @@ class ChatResponse(BaseModel):
     message: str
     success: bool
     user_id: str
+    diagram_path: Optional[str] = None
 
 class MemoryRequest(BaseModel):
     user_id: Optional[str] = "default"
@@ -43,6 +49,10 @@ class MemoryResponse(BaseModel):
 memory = get_memory()
 agents = {}  # Store agents per user
 
+# Create diagrams directory
+DIAGRAMS_DIR = Path("diagrams")
+DIAGRAMS_DIR.mkdir(exist_ok=True)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan event handler"""
@@ -51,6 +61,9 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down API")
 
 app = FastAPI(title="Memory-Enabled Strands Agent API", version="2.0.0", lifespan=lifespan)
+
+# Mount static files for diagrams
+app.mount("/diagrams", StaticFiles(directory=str(DIAGRAMS_DIR)), name="diagrams")
 
 # Configure CORS
 app.add_middleware(
@@ -89,7 +102,24 @@ async def chat(request: ChatRequest):
             raise HTTPException(status_code=400, detail="Last message must be from user")
         
         agent = get_or_create_agent(user_id)
-        result = agent(latest_message.content)
+        
+        # Check if this is a diagram-related request
+        is_diagram_request = any(keyword in latest_message.content.lower() 
+                                for keyword in ['diagram', 'architecture', 'draw', 'visualize'])
+        
+        # If diagram request, include previous diagram context from memory
+        if is_diagram_request:
+            prev_diagrams = memory.search("diagram architecture", user_id=user_id, limit=3)
+            if prev_diagrams and isinstance(prev_diagrams, dict):
+                prev_diagrams = prev_diagrams.get('results', [])
+            if prev_diagrams:
+                context = "\n".join([m['memory'] for m in prev_diagrams])
+                enhanced_query = f"{latest_message.content}\n\nPrevious diagram context: {context}"
+                result = agent(enhanced_query)
+            else:
+                result = agent(latest_message.content)
+        else:
+            result = agent(latest_message.content)
         
         if hasattr(result, 'text'):
             response = result.text
@@ -98,10 +128,17 @@ async def chat(request: ChatRequest):
         else:
             response = str(result)
         
-        import re
         response = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL).strip()
         
-        return ChatResponse(message=response, success=True, user_id=user_id)
+        # Check if response contains diagram path
+        diagram_path = None
+        diagram_match = re.search(r'([\w_-]+\.png)', response)
+        if diagram_match:
+            diagram_filename = diagram_match.group(1)
+            if (DIAGRAMS_DIR / diagram_filename).exists():
+                diagram_path = f"/diagrams/{diagram_filename}"
+        
+        return ChatResponse(message=response, success=True, user_id=user_id, diagram_path=diagram_path)
         
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")

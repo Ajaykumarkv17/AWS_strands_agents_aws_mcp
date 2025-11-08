@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-st.set_page_config(page_title="Memory-Enabled AI Agent", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="AWS Diagram Agent", page_icon="🏗️", layout="wide")
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
@@ -105,11 +105,11 @@ def call_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None):
     try:
         url = f"{API_BASE_URL}{endpoint}"
         if method == "POST":
-            response = requests.post(url, json=data, timeout=30)
+            response = requests.post(url, json=data, timeout=300)
         elif method == "DELETE":
-            response = requests.delete(url, timeout=30)
+            response = requests.delete(url, timeout=300)
         else:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=300)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -122,17 +122,17 @@ def get_response(prompt: str, user_id: str):
         response = requests.post(
             f"{API_BASE_URL}/chat",
             json={"messages": [{"role": "user", "content": prompt}], "user_id": user_id},
-            timeout=60
+            timeout=300
         )
         response.raise_for_status()
         result = response.json()
-        return result.get("message", "No response")
+        return result.get("message", "No response"), result.get("diagram_path")
     except requests.exceptions.Timeout:
-        return "⚠️ Request timed out. The agent is taking longer than expected. Please try again."
+        return "⚠️ Request timed out. The agent is taking longer than expected. Please try again.", None
     except requests.exceptions.RequestException as e:
-        return f"⚠️ Connection error: {str(e)}"
+        return f"⚠️ Connection error: {str(e)}", None
     except Exception as e:
-        return f"⚠️ Error: {str(e)}"
+        return f"⚠️ Error: {str(e)}", None
 
 def login_page():
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -253,6 +253,7 @@ def main_app():
         - ☁️ **AWS Account** - Account info
         - 🪣 **S3 Buckets** - List buckets
         - 💻 **System Info** - System details
+        - 🏗️ **AWS Diagrams** - Create architecture diagrams
         """)
         
         st.divider()
@@ -263,12 +264,16 @@ def main_app():
         - *"Calculate 25 * 48"*
         - *"What time is it?"*
         - *"List my S3 buckets"*
+        - *"Create a diagram for serverless web app"*
+        - *"Add DynamoDB to previous diagram"*
         """)
     
     # Chat
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"], avatar="👤" if msg["role"] == "user" else "🤖"):
             st.markdown(msg["content"])
+            if "diagram" in msg and msg["diagram"]:
+                st.image(f"{API_BASE_URL}{msg['diagram']}", caption="Generated Diagram")
     
     if prompt := st.chat_input("💬 Ask me anything... I'll remember our conversation!"):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -277,9 +282,14 @@ def main_app():
         
         with st.chat_message("assistant", avatar="🤖"):
             with st.spinner("🤔 Thinking..."):
-                response = get_response(prompt, st.session_state.user_id)
+                response, diagram_path = get_response(prompt, st.session_state.user_id)
             st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            if diagram_path:
+                st.image(f"{API_BASE_URL}{diagram_path}", caption="Generated Diagram")
+                st.session_state.messages.append({"role": "assistant", "content": response, "diagram": diagram_path})
+            else:
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
 def main():
     init_session()
