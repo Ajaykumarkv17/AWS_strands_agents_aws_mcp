@@ -12,7 +12,8 @@ from strands_tools import calculator, current_time
 import boto3
 import json
 from memory_config import get_memory
-from mcp_diagram_client import get_diagram_mcp_client
+from diagram_generator import create_diagram_tool
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -190,14 +191,13 @@ def create_memory_agent(user_id: str = "default") -> Agent:
         list_s3_buckets
     ]
     
-    # Add MCP diagram client
+    # Add diagram generation tool (Windows-compatible)
     try:
-        mcp_client = get_diagram_mcp_client()
-        if mcp_client:
-            tools.append(mcp_client)
-            logger.info("Added AWS Diagram MCP client")
+        diagram_tool = create_diagram_tool()
+        tools.append(diagram_tool)
+        logger.info("Added Windows-compatible diagram generator")
     except Exception as e:
-        logger.warning(f"Could not load MCP client: {e}")
+        logger.warning(f"Could not load diagram generator: {e}")
     
     system_prompt = f"""
 You are a helpful AI assistant with memory and diagram generation capabilities.
