@@ -4,3 +4,4 @@ uv.lock
 .env
 __pycache__
 venv
+blog.md
