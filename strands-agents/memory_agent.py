@@ -13,6 +13,7 @@ import boto3
 import json
 from memory_config import get_memory
 from diagram_generator import create_diagram_tool
+from mcp_diagram_client import get_diagram_mcp_client
 import sys
 
 # Configure logging
@@ -193,11 +194,12 @@ def create_memory_agent(user_id: str = "default") -> Agent:
     
     # Add diagram generation tool (Windows-compatible)
     try:
-        diagram_tool = create_diagram_tool()
-        tools.append(diagram_tool)
-        logger.info("Added Windows-compatible diagram generator")
+        mcp_client = get_diagram_mcp_client()
+        if mcp_client:
+            tools.append(mcp_client)
+            logger.info("Added AWS Diagram MCP client")
     except Exception as e:
-        logger.warning(f"Could not load diagram generator: {e}")
+        logger.warning(f"Could not load MCP client: {e}")
     
     import os
     diagrams_dir = os.path.abspath("diagrams")
