@@ -3,3 +3,4 @@ myawsenv
 uv.lock
 .env
 __pycache__
+venv
