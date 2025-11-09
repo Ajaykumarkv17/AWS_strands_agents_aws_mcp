@@ -210,7 +210,7 @@ async def get_memories(request: MemoryRequest):
         
         if request.query:
             # Search specific memories
-            result = memory.search(request.query, user_id=user_id, limit=10)
+            result = memory.search(request.query, user_id=user_id, limit=100)
             # Handle dict response with 'results' key
             memories = result.get('results', []) if isinstance(result, dict) else result
         else:

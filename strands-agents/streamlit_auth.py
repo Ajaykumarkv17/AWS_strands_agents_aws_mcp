@@ -236,7 +236,7 @@ def main_app():
                     memories = result.get("memories", [])
                     if memories:
                         st.markdown("### Stored Memories:")
-                        for mem in memories[:5]:
+                        for mem in memories:
                             st.markdown(f'<div class="memory-card">💭 {mem.get("memory", "")}</div>', unsafe_allow_html=True)
                     else:
                         st.info("No memories yet. Start chatting!")
