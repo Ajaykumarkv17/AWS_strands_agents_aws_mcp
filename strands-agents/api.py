@@ -132,11 +132,29 @@ async def chat(request: ChatRequest):
         
         # Check if response contains diagram path
         diagram_path = None
-        diagram_match = re.search(r'([\w_-]+\.png)', response)
-        if diagram_match:
-            diagram_filename = diagram_match.group(1)
-            if (DIAGRAMS_DIR / diagram_filename).exists():
-                diagram_path = f"/diagrams/{diagram_filename}"
+        # Look for diagram paths in response
+        path_patterns = [
+            r'/tmp/generated-diagrams/([\w_-]+\.png)',
+            r'diagrams/([\w_-]+\.png)',
+            r'([\w_-]+\.png)'
+        ]
+        
+        for pattern in path_patterns:
+            diagram_match = re.search(pattern, response)
+            if diagram_match:
+                diagram_filename = diagram_match.group(1)
+                # Check if file exists in diagrams directory
+                if (DIAGRAMS_DIR / diagram_filename).exists():
+                    diagram_path = f"/diagrams/{diagram_filename}"
+                    break
+                # If file is in /tmp, copy it to diagrams directory
+                tmp_path = Path(f"/tmp/generated-diagrams/{diagram_filename}")
+                if tmp_path.exists():
+                    import shutil
+                    shutil.copy(tmp_path, DIAGRAMS_DIR / diagram_filename)
+                    diagram_path = f"/diagrams/{diagram_filename}"
+                    logger.info(f"Copied diagram from /tmp to {DIAGRAMS_DIR}")
+                    break
         
         return ChatResponse(message=response, success=True, user_id=user_id, diagram_path=diagram_path)
         

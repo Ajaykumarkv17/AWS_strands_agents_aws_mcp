@@ -199,6 +199,9 @@ def create_memory_agent(user_id: str = "default") -> Agent:
     except Exception as e:
         logger.warning(f"Could not load diagram generator: {e}")
     
+    import os
+    diagrams_dir = os.path.abspath("diagrams")
+    
     system_prompt = f"""
 You are a helpful AI assistant with memory and diagram generation capabilities.
 
@@ -208,8 +211,10 @@ When users ask to create or modify diagrams, use diagram tools and search memory
 
 For diagrams:
 1. Use MCP tools to create AWS architecture diagrams
-2. Search memory for previous diagrams to iterate
-3. Save diagram context to memory
+2. IMPORTANT: Always pass workspace_dir="{diagrams_dir}" to generate_diagram tool
+3. Search memory for previous diagrams to iterate
+4. Save diagram context to memory
+5. After generation, extract the filename from the response and inform user
 
 User: {user_id}
 
